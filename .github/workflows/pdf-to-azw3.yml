@@ -34,13 +34,14 @@ jobs:
             base=$(basename "$file" .pdf)
 
             ebook-convert "$file" "output/$base.azw3" \
-              --pdf-engine=poppler \
-              --enable-heuristics \
-              --heuristic-processing \
-              --unwrap-lines \
-              --remove-paragraph-spacing \
-              --chapter-mark=none \
-              --no-default-epub-cover
+  --pdf-engine=pdftohtml \
+  --enable-heuristics \
+  --heuristic-processing \
+  --unwrap-lines \
+  --remove-paragraph-spacing \
+  --chapter-mark=none \
+  --no-default-epub-cover
+
           done
 
       - name: Commit AZW3 files
