@@ -1,9 +1,10 @@
-name: PDF to AZW3 (Kindle Optimized)
+name: PDF to AZW3 (Kindle – Magazine Safe)
 
 on:
   push:
     paths:
       - "input/*.pdf"
+  workflow_dispatch:
 
 jobs:
   convert:
@@ -13,32 +14,76 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget xdg-utils libegl1 libopengl0 poppler-utils
+          sudo apt-get install -y \
+            wget \
+            xdg-utils \
+            xz-utils \
+            poppler-utils \
+            libegl1 \
+            libopengl0 \
+            libxcb-cursor0 \
+            libxcb-xinerama0 \
+            libxkbcommon0 \
+            libgl1 \
+            libnss3 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxrandr2 \
+            libasound2t64 \
+            libatk1.0-0 \
+            libatk-bridge2.0-0 \
+            libcups2 \
+            libdbus-1-3 \
+            libdrm2 \
+            libgbm1 \
+            libgtk-3-0 \
+            libxshmfence1
 
       - name: Install Calibre
         run: |
           wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin
 
-      - name: Convert PDFs to AZW3
+      - name: Convert PDFs to AZW3 (Kindle optimized)
         run: |
           mkdir -p output
+
+          shopt -s nullglob
+          FILES=input/*.pdf
+
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "No PDF files found in input/. Skipping conversion."
+            exit 0
+          fi
+
           for file in input/*.pdf; do
             name=$(basename "$file" .pdf)
+            echo "Converting $file → output/$name.azw3"
+
             ebook-convert "$file" "output/$name.azw3" \
               --pdf-engine=pdftohtml \
-              --no-images \
-              --remove-paragraph-spacing \
-              --remove-paragraph-spacing-indent-size=1.0 \
-              --chapter "//*[name()='h1' or name()='h2']" \
-              --linearize-tables \
-              --disable-font-rescaling
+              --no-default-epub-cover \
+              --disable-font-rescaling \
+              --chapter-mark=pagebreak \
+              --minimum-line-height=120 \
+              --margin-left=5 \
+              --margin-right=5 \
+              --margin-top=5 \
+              --margin-bottom=5 \
+              --unwrap-lines \
+              --remove-paragraph-spacing
           done
 
-      - name: Upload AZW3 files
-        uses: actions/upload-artifact@v4
-        with:
-          name: azw3-output
-          path: output/
+      - name: Commit converted files
+        run: |
+          if [ -n "$(ls -A output 2>/dev/null)" ]; then
+            git config user.name "GitHub Action"
+            git config user.email "action@github.com"
+            git add output
+            git commit -m "Convert PDF to AZW3 (Kindle optimized)" || echo "Nothing to commit"
+            git push
+          else
+            echo "No output files to commit."
+          fi
