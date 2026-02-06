@@ -1,1 +1,36 @@
-x
+name: PDF to EPUB Converter
+
+on:
+  workflow_dispatch:
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Calibre
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget xdg-utils
+          sudo -v && wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin
+
+      - name: Convert PDF to EPUB
+        run: |
+          mkdir -p input output
+          cp input/*.pdf output/ || true
+          for file in input/*.pdf; do
+            [ -e "$file" ] || continue
+            base=$(basename "$file" .pdf)
+            ebook-convert "$file" "output/$base.epub"
+          done
+
+      - name: Commit EPUB
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add output
+          git commit -m "Convert PDF to EPUB" || echo "Nothing to commit"
+          git push
