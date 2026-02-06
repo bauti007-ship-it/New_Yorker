@@ -1,7 +1,9 @@
-name: PDF → AZW3 (Revistas, 2 columnas)
+name: PDF to AZW3 (Kindle Optimized)
 
 on:
-  workflow_dispatch:
+  push:
+    paths:
+      - "input/*.pdf"
 
 jobs:
   convert:
@@ -11,42 +13,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install system dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            wget \
-            xdg-utils \
-            libegl1 \
-            libopengl0 \
-            libxcb-cursor0 \
-            libxcb-xinerama0
+          sudo apt-get install -y wget xdg-utils libegl1 libopengl0 poppler-utils
 
       - name: Install Calibre
         run: |
           wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin
 
-      - name: Convert PDF to AZW3 (magazine optimized)
+      - name: Convert PDFs to AZW3
         run: |
           mkdir -p output
           for file in input/*.pdf; do
-            [ -e "$file" ] || continue
-            base=$(basename "$file" .pdf)
-
-            ebook-convert "$file" "output/$base.azw3" \
+            name=$(basename "$file" .pdf)
+            ebook-convert "$file" "output/$name.azw3" \
               --pdf-engine=pdftohtml \
-              --enable-heuristics \
-              --heuristic-processing \
-              --unwrap-lines \
+              --no-images \
               --remove-paragraph-spacing \
-              --chapter-mark=none \
-              --no-default-epub-cover
+              --remove-paragraph-spacing-indent-size=1.0 \
+              --chapter "//*[name()='h1' or name()='h2']" \
+              --linearize-tables \
+              --disable-font-rescaling
           done
 
-      - name: Commit AZW3 files
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add output
-          git commit -m "Convert PDF to AZW3 (magazine optimized)" || echo "Nothing to commit"
-          git push
+      - name: Upload AZW3 files
+        uses: actions/upload-artifact@v4
+        with:
+          name: azw3-output
+          path: output/
