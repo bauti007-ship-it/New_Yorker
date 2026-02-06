@@ -1,4 +1,4 @@
-name: PDF to EPUB Converter
+name: PDF to AZW3 (Magazine Optimized)
 
 on:
   workflow_dispatch:
@@ -26,19 +26,27 @@ jobs:
         run: |
           wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin
 
-      - name: Convert PDF to EPUB
+      - name: Convert PDF to AZW3 (optimized for magazines)
         run: |
           mkdir -p output
           for file in input/*.pdf; do
             [ -e "$file" ] || continue
             base=$(basename "$file" .pdf)
-            ebook-convert "$file" "output/$base.epub"
+
+            ebook-convert "$file" "output/$base.azw3" \
+              --pdf-engine=poppler \
+              --enable-heuristics \
+              --heuristic-processing \
+              --unwrap-lines \
+              --remove-paragraph-spacing \
+              --chapter-mark=none \
+              --no-default-epub-cover
           done
 
-      - name: Commit EPUB
+      - name: Commit AZW3 files
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add output
-          git commit -m "Convert PDF to EPUB" || echo "Nothing to commit"
+          git commit -m "Convert PDF to AZW3 (magazine optimized)" || echo "Nothing to commit"
           git push
