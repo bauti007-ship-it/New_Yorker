@@ -1,4 +1,4 @@
-name: PDF to AZW3 (Kindle – Magazine Safe)
+name: PDF to AZW3 (Kindle – Stable Magazine Mode)
 
 on:
   push:
@@ -46,25 +46,24 @@ jobs:
         run: |
           wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin
 
-      - name: Convert PDFs to AZW3 (Kindle optimized)
+      - name: Convert PDFs to AZW3 (Kindle safe)
         run: |
           mkdir -p output
-
           shopt -s nullglob
-          FILES=input/*.pdf
+
+          FILES=(input/*.pdf)
 
           if [ ${#FILES[@]} -eq 0 ]; then
-            echo "No PDF files found in input/. Skipping conversion."
+            echo "No PDF files found in input/. Nothing to convert."
             exit 0
           fi
 
-          for file in input/*.pdf; do
-            name=$(basename "$file" .pdf)
-            echo "Converting $file → output/$name.azw3"
+          for file in "${FILES[@]}"; do
+            name="$(basename "$file" .pdf)"
+            echo "Converting: $file → output/$name.azw3"
 
             ebook-convert "$file" "output/$name.azw3" \
               --pdf-engine=pdftohtml \
-              --no-default-epub-cover \
               --disable-font-rescaling \
               --chapter-mark=pagebreak \
               --minimum-line-height=120 \
